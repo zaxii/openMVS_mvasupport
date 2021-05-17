@@ -58,6 +58,17 @@
 #ifdef _MSC_VER
 #  pragma warning(pop)
 #endif
+// GLTF: mesh import/export
+#define JSON_NOEXCEPTION
+#define TINYGLTF_NOEXCEPTION
+#define TINYGLTF_NO_STB_IMAGE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#define TINYGLTF_NO_INCLUDE_JSON
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
+#define TINYGLTF_IMPLEMENTATION
+#include "../IO/json.hpp"
+#include "../IO/tiny_gltf.h"
 
 using namespace MVS;
 
@@ -1450,6 +1461,9 @@ bool Mesh::Save(const String& fileName, const cList<String>& comments, bool bBin
 	if (ext == _T(".obj"))
 		ret = SaveOBJ(fileName);
 	else
+	if (ext == _T(".gltf") || ext == _T(".glb"))
+		ret = SaveGLTF(fileName, ext == _T(".glb"));
+	else
 		ret = SavePLY(ext != _T(".ply") ? String(fileName+_T(".ply")) : fileName, comments, bBinary);
 	if (!ret)
 		return false;
@@ -1590,6 +1604,179 @@ bool Mesh::SaveOBJ(const String& fileName) const
 	pMaterial->diffuse_map = textureDiffuse;
 
 	return model.Save(fileName);
+}
+// export the mesh as a GLTF file
+template <typename T>
+void ExtendBufferGLTF(const T* src, size_t size, tinygltf::Buffer& dst, size_t& byte_offset, size_t& byte_length) {
+	byte_offset = dst.data.size();
+	byte_length = sizeof(T) * size;
+	byte_length = ((byte_length + 3) / 4) * 4;
+	dst.data.resize(byte_offset + byte_length);
+	memcpy(&dst.data[byte_offset], &src[0], byte_length);
+}
+bool Mesh::SaveGLTF(const String& fileName, bool bBinary) const
+{
+	ASSERT(!fileName.IsEmpty());
+	Util::ensureFolder(fileName);
+
+	// store a copy of the mesh if it has texture, in order to convert
+	// the texture coordinates from per face to per vertex
+	Mesh meshCompressed;
+	if (HasTexture())
+		ConvertTexturePerVertex(meshCompressed);
+	const Mesh& mesh(HasTexture() ? meshCompressed : *this);
+
+	// create GLTF model
+	tinygltf::Model gltfModel;
+	tinygltf::Scene gltfScene;
+	tinygltf::Mesh gltfMesh;
+	tinygltf::Primitive gltfPrimitive;
+	tinygltf::Buffer gltfBuffer;
+	gltfScene.name = "scene";
+	gltfMesh.name = "mesh";
+
+	// setup vertices
+	{
+		STATIC_ASSERT(3 * sizeof(Vertex::Type) == sizeof(Vertex)); // VertexArr should be continuous
+		const Box box(GetAABB());
+		gltfPrimitive.attributes["POSITION"] = gltfModel.accessors.size();
+		tinygltf::Accessor vertexPositionAccessor;
+		vertexPositionAccessor.name = "vertexPositionAccessor";
+		vertexPositionAccessor.bufferView = gltfModel.bufferViews.size();
+		vertexPositionAccessor.type = TINYGLTF_TYPE_VEC3;
+		vertexPositionAccessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
+		vertexPositionAccessor.count = mesh.vertices.size();
+		vertexPositionAccessor.minValues = {box.ptMin.x(), box.ptMin.y(), box.ptMin.z()};
+		vertexPositionAccessor.maxValues = {box.ptMax.x(), box.ptMax.y(), box.ptMax.z()};
+		gltfModel.accessors.emplace_back(std::move(vertexPositionAccessor));
+		// setup vertices buffer
+		tinygltf::BufferView vertexPositionBufferView;
+		vertexPositionBufferView.name = "vertexPositionBufferView";
+		vertexPositionBufferView.buffer = gltfModel.buffers.size();
+		ExtendBufferGLTF(mesh.vertices.data(), mesh.vertices.size(), gltfBuffer,
+			vertexPositionBufferView.byteOffset, vertexPositionBufferView.byteLength);
+		gltfModel.bufferViews.emplace_back(std::move(vertexPositionBufferView));
+	}
+
+	// setup faces
+	{
+		STATIC_ASSERT(3 * sizeof(Face::Type) == sizeof(Face)); // FaceArr should be continuous
+		gltfPrimitive.indices = gltfModel.accessors.size();
+		tinygltf::Accessor triangleAccessor;
+		triangleAccessor.name = "triangleAccessor";
+		triangleAccessor.bufferView = gltfModel.bufferViews.size();
+		triangleAccessor.type = TINYGLTF_TYPE_SCALAR;
+		triangleAccessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+		triangleAccessor.count = mesh.faces.size() * 3;
+		gltfModel.accessors.emplace_back(std::move(triangleAccessor));
+		// setup triangles buffer
+		tinygltf::BufferView triangleBufferView;
+		triangleBufferView.name = "triangleBufferView";
+		triangleBufferView.buffer = gltfModel.buffers.size();
+		ExtendBufferGLTF(mesh.faces.data(), mesh.faces.size(), gltfBuffer,
+			triangleBufferView.byteOffset, triangleBufferView.byteLength);
+		gltfModel.bufferViews.emplace_back(std::move(triangleBufferView));
+		gltfPrimitive.mode = TINYGLTF_MODE_TRIANGLES;
+	}
+
+	// setup material
+	gltfPrimitive.material = gltfModel.materials.size();
+	tinygltf::Material gltfMaterial;
+	gltfMaterial.name = "material";
+	gltfMaterial.doubleSided = true;
+	if (mesh.HasTexture()) {
+		// setup texture
+		gltfMaterial.emissiveFactor = std::vector<double>{0,0,0};
+		gltfMaterial.pbrMetallicRoughness.baseColorTexture.index = gltfModel.textures.size();
+		gltfMaterial.pbrMetallicRoughness.baseColorTexture.texCoord = 0;
+		gltfMaterial.pbrMetallicRoughness.baseColorFactor = std::vector<double>{1,1,1,1};
+		gltfMaterial.pbrMetallicRoughness.metallicFactor = 0;
+		gltfMaterial.pbrMetallicRoughness.roughnessFactor = 1;
+		gltfMaterial.extensions = {{"KHR_materials_unlit", {}}};
+		gltfModel.extensionsUsed = {"KHR_materials_unlit"};
+		// setup texture coordinates accessor
+		gltfPrimitive.attributes["TEXCOORD_0"] = gltfModel.accessors.size();
+		tinygltf::Accessor vertexTexcoordAccessor;
+		vertexTexcoordAccessor.name = "vertexTexcoordAccessor";
+		vertexTexcoordAccessor.bufferView = gltfModel.bufferViews.size();
+		vertexTexcoordAccessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
+		vertexTexcoordAccessor.count = mesh.faceTexcoords.size();
+		vertexTexcoordAccessor.type = TINYGLTF_TYPE_VEC2;
+		gltfModel.accessors.emplace_back(std::move(vertexTexcoordAccessor));
+		// setup texture coordinates (flip Y)
+		STATIC_ASSERT(2 * sizeof(TexCoord::Type) == sizeof(TexCoord)); // TexCoordArr should be continuous
+		ASSERT(mesh.vertices.size() == mesh.faceTexcoords.size());
+		tinygltf::BufferView vertexTexcoordBufferView;
+		vertexTexcoordBufferView.name = "vertexTexcoordBufferView";
+		vertexTexcoordBufferView.buffer = gltfModel.buffers.size();
+		TexCoordArr flipTexcoords(mesh.faceTexcoords.size());
+		FOREACH(i, mesh.faceTexcoords) {
+			flipTexcoords[i].x = mesh.faceTexcoords[i].x;
+			flipTexcoords[i].y = 1.f - mesh.faceTexcoords[i].y;
+		}
+		ExtendBufferGLTF(flipTexcoords.data(), flipTexcoords.size(), gltfBuffer,
+			vertexTexcoordBufferView.byteOffset, vertexTexcoordBufferView.byteLength);
+		gltfModel.bufferViews.emplace_back(std::move(vertexTexcoordBufferView));
+		// setup texture
+		tinygltf::Texture texture;
+		texture.name = "texture";
+		texture.source = gltfModel.images.size();
+		texture.sampler = gltfModel.samplers.size();
+		gltfModel.textures.emplace_back(std::move(texture));
+		// setup texture image
+		tinygltf::Image image;
+		image.name = Util::getFileFullName(fileName);
+		image.width = mesh.textureDiffuse.cols;
+		image.height = mesh.textureDiffuse.rows;
+		image.component = 3;
+		image.bits = 8;
+		image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+		image.mimeType = "image/png";
+		image.image.resize(mesh.textureDiffuse.size().area() * 3);
+		mesh.textureDiffuse.copyTo(cv::Mat(mesh.textureDiffuse.size(), CV_8UC3, image.image.data()));
+		gltfModel.images.emplace_back(std::move(image));
+		// setup texture sampler
+		tinygltf::Sampler sampler;
+		sampler.name = "sampler";
+		sampler.minFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;
+		sampler.magFilter = TINYGLTF_TEXTURE_FILTER_LINEAR;
+		sampler.wrapS = TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE;
+		sampler.wrapT = TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE;
+		gltfModel.samplers.emplace_back(std::move(sampler));
+	}
+	gltfModel.materials.emplace_back(std::move(gltfMaterial));
+	gltfModel.buffers.emplace_back(std::move(gltfBuffer));
+	gltfMesh.primitives.emplace_back(std::move(gltfPrimitive));
+
+	// setup scene node
+	gltfScene.nodes.emplace_back(gltfModel.nodes.size());
+	tinygltf::Node node;
+	node.name = "node";
+	node.mesh = gltfModel.meshes.size();
+	gltfModel.nodes.emplace_back(std::move(node));
+	gltfModel.meshes.emplace_back(std::move(gltfMesh));
+	gltfModel.scenes.emplace_back(std::move(gltfScene));
+	gltfModel.asset.generator = "OpenMVS";
+	gltfModel.asset.version = "2.0";
+	gltfModel.defaultScene = 0;
+
+	// setup GLTF
+	struct Tools {
+		static bool WriteImageData(const std::string *basepath, const std::string *filename,
+			tinygltf::Image *image, bool embedImages, void *) {
+			ASSERT(!embedImages);
+			image->uri = Util::isFullPath(filename->c_str()) ?
+				Util::getRelativePath(*basepath, *filename) : String(*filename);
+			String basePath(*basepath);
+			return cv::imwrite(
+				Util::ensureFolderSlash(basePath) + image->uri,
+				cv::Mat(image->height, image->width, CV_8UC3, image->image.data()));
+		}
+	};
+	tinygltf::TinyGLTF gltf;
+	gltf.SetImageWriter(Tools::WriteImageData, NULL);
+	const bool bEmbedImages(false), bEmbedBuffers(true), bPrettyPrint(true);
+	return gltf.WriteGltfSceneToFile(&gltfModel, fileName, bEmbedImages, bEmbedBuffers, bPrettyPrint, bBinary);
 } // Save
 /*----------------------------------------------------------------*/
 
@@ -3461,6 +3648,54 @@ Mesh::VIndex Mesh::RemoveUnreferencedVertices(bool bUpdateLists)
 	RemoveVertices(vertexRemove, bUpdateLists);
 	return vertexRemove.size();
 }
+
+// convert textured mesh to store texture coordinates per vertex instead of per face
+void Mesh::ConvertTexturePerVertex(Mesh& mesh) const
+{
+	ASSERT(HasTexture());
+	mesh.vertices = vertices;
+	mesh.faces.resize(faces.size());
+	mesh.faceTexcoords.reserve(vertices.size()*3/2);
+	mesh.faceTexcoords.resize(vertices.size());
+	VertexIdxArr mapVertices(vertices.size(), vertices.size()*3/2);
+	mapVertices.Memset(0xff);
+	FOREACH(idxF, faces) {
+		// face vertices inside a patch are simply copied;
+		// face vertices on the patch boundary are duplicated,
+		// with the same position, but different texture coordinates
+		const Face& face = faces[idxF];
+		Face& newface = mesh.faces[idxF];
+		for (int i=0; i<3; ++i) {
+			const TexCoord& tc = faceTexcoords[idxF*3+i];
+			VIndex idxV(face[i]);
+			while (true) {
+				VIndex& idxVT = mapVertices[idxV];
+				if (idxVT == NO_ID) {
+					// vertex seen for the first time, so just copy it
+					mesh.faceTexcoords[newface[i] = idxVT = idxV] = tc;
+					break;
+				}
+				// vertex already seen in an other face, check the texture coordinates
+				if (mesh.faceTexcoords[idxV] == tc) {
+					// texture coordinates equal, patch interior vertex, link to it
+					newface[i] = idxV;
+					break;
+				}
+				if (idxVT == idxV) {
+					// duplicate vertex, copy position, but update its texture coordinates
+					mapVertices.emplace_back(newface[i] = idxVT = mesh.vertices.size());
+					mesh.vertices.emplace_back(vertices[face[i]]);
+					mesh.faceTexcoords.emplace_back(tc);
+					break;
+				}
+				// continue with the next linked vertex which share the position,
+				// but use different texture coordinates
+				idxV = idxVT;
+			}
+		}
+	}
+	mesh.textureDiffuse = textureDiffuse;
+} // ConvertTexturePerVertex
 /*----------------------------------------------------------------*/
 
 
