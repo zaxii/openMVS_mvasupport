@@ -31,6 +31,7 @@
 
 #include "Common.h"
 #include "Scene.h"
+#include "../../libs/ARCHIVE/ARReader.h"
 
 using namespace VIEWER;
 
@@ -317,7 +318,7 @@ bool Scene::Open(LPCTSTR fileName, LPCTSTR meshFileName)
 	// load the scene
 	WORKING_FOLDER = Util::getFilePath(fileName);
 	INIT_WORKING_FOLDER;
-	if (!scene.Load(fileName, true))
+	if (!ARCH::AutoLoadScene(scene,fileName))
 		return false;
 	if (meshFileName) {
 		// load given mesh

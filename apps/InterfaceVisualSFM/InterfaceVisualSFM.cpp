@@ -31,6 +31,7 @@
 
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
+#include "../../libs/ARCHIVE/ARWriter.h"
 #define LOG_OUT() GET_LOG()
 #define LOG_ERR() GET_LOG()
 #include "Util.h"
@@ -394,7 +395,8 @@ int ImportSceneVSFM()
 	VERBOSE("Input data imported: %u cameras, %u poses, %u images, %u vertices (%s)", cameras.size(), cameras.size(), cameras.size(), vertices.size(), TD_TIMER_GET_FMT().c_str());
 
 	// write OpenMVS input data
-	return scene.SaveInterface(MAKE_PATH_SAFE(OPT::strOutputFileName));
+
+	return ARCH::AutoSaveScene(scene,MAKE_PATH_SAFE(OPT::strOutputFileName));
 }
 
 
@@ -494,7 +496,7 @@ int ImportSceneCMPMVS()
 	VERBOSE("Input data imported: %u images (%s)", scene.images.size(), TD_TIMER_GET_FMT().c_str());
 
 	// write OpenMVS input data
-	return scene.SaveInterface(MAKE_PATH_SAFE(OPT::strOutputFileName));
+    return ARCH::AutoSaveScene(scene,MAKE_PATH_SAFE(OPT::strOutputFileName));
 }
 
 

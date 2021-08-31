@@ -31,6 +31,8 @@
 
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
+#include "../../libs/ARCHIVE/ARReader.h"
+#include "../../libs/ARCHIVE/ARWriter.h"
 #include <boost/program_options.hpp>
 
 using namespace MVS;
@@ -213,7 +215,7 @@ int main(int argc, LPCTSTR* argv)
 
 	Scene scene(OPT::nMaxThreads);
 	// load and texture the mesh
-	if (!scene.Load(MAKE_PATH_SAFE(OPT::strInputFileName)))
+	if (!ARCH::AutoLoadScene(scene, MAKE_PATH_SAFE(OPT::strInputFileName)))
 		return EXIT_FAILURE;
 	if (!OPT::strMeshFileName.IsEmpty()) {
 		// load given mesh
@@ -248,7 +250,7 @@ int main(int argc, LPCTSTR* argv)
 	VERBOSE("Mesh texturing completed: %u vertices, %u faces (%s)", scene.mesh.vertices.GetSize(), scene.mesh.faces.GetSize(), TD_TIMER_GET_FMT().c_str());
 
 	// save the final mesh
-	scene.Save(baseFileName+_T(".mvs"), (ARCHIVE_TYPE)OPT::nArchiveType);
+	ARCH::AutoSaveScene(scene, baseFileName+_T(".mva"));
 	scene.mesh.Save(baseFileName+OPT::strExportType);
 	#if TD_VERBOSE != TD_VERBOSE_OFF
 	if (VERBOSITY_LEVEL > 2)

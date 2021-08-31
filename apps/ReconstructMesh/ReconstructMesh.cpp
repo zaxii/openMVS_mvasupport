@@ -31,6 +31,8 @@
 
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
+#include "../../libs/ARCHIVE/ARReader.h"
+#include "../../libs/ARCHIVE/ARWriter.h"
 #include <boost/program_options.hpp>
 
 using namespace MVS;
@@ -219,7 +221,7 @@ int main(int argc, LPCTSTR* argv)
 
 	Scene scene(OPT::nMaxThreads);
 	// load project
-	if (!scene.Load(MAKE_PATH_SAFE(OPT::strInputFileName)))
+	if (!ARCH::AutoLoadScene(scene, MAKE_PATH_SAFE(OPT::strInputFileName)))
 		return EXIT_FAILURE;
 	if (OPT::bMeshExport) {
 		// check there is a mesh to export
@@ -296,7 +298,7 @@ int main(int argc, LPCTSTR* argv)
 
 		// save the final mesh
 		const String baseFileName(MAKE_PATH_SAFE(Util::getFileFullName(OPT::strOutputFileName)));
-		scene.Save(baseFileName+_T(".mvs"), (ARCHIVE_TYPE)OPT::nArchiveType);
+		ARCH::AutoSaveScene(scene, baseFileName+_T(".mva"));
 		scene.mesh.Save(baseFileName+OPT::strExportType);
 		#if TD_VERBOSE != TD_VERBOSE_OFF
 		if (VERBOSITY_LEVEL > 2)
