@@ -183,7 +183,7 @@ INSTALL(FILES "${OpenMVS_CONFIG_INCLUDE_DIR}/ConfigLocal.h" DESTINATION "${INSTA
 INCLUDE_DIRECTORIES(${OpenMVS_CONFIG_INCLUDE_DIR})
 
 # Add all targets to the build-tree export set
-export(TARGETS Common IO Math MVS ARCHIVE FILE "${PROJECT_BINARY_DIR}/OpenMVSTargets.cmake")
+export(TARGETS Common IO Math MVS MVArchive FILE "${PROJECT_BINARY_DIR}/OpenMVSTargets.cmake")
 
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)

@@ -87,8 +87,8 @@ bool SaveInterface(const MVS::Scene &scene, const std::string fileName,
       MVSA::Interface::Vertex::View &view = vertex.views[v];
       view.imageID = views[v];
       view.confidence = (scene.pointcloud.pointWeights.IsEmpty()
-                             ? 0.f
-                             : scene.pointcloud.pointWeights[i][v]);
+                         ? 0.f
+                         : scene.pointcloud.pointWeights[i][v]);
     });
   }
 
@@ -229,7 +229,7 @@ bool SaveInterface(const MVS::Scene &scene, const std::string fileName,
   //////////////////////
 
   // serialize out the current state
-  if (!MVSA::ARCHIVE::SerializeSave(obj, fileName, compress)) return false;
+  if (!MVSA::MVArchive::SerializeSave(obj, fileName, compress)) return false;
   return true;
 }
 

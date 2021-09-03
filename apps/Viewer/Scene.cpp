@@ -31,7 +31,7 @@
 
 #include "Common.h"
 #include "Scene.h"
-#include "../../libs/ARCHIVE/ARReader.h"
+#include "../../libs/MVArchive/ARReader.h"
 
 using namespace VIEWER;
 

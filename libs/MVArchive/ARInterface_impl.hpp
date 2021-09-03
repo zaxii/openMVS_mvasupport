@@ -37,7 +37,7 @@ namespace cs = compressed_streams;
 
 namespace _INTERFACE_NAMESPACE {
 // custom serialization
-namespace ARCHIVE {
+namespace MVArchive {
 template<typename _Tp>
 bool Save(ArchiveSave &a, const _Tp &obj) {
   const_cast<_Tp &>(obj).serialize(a, a.version);
@@ -57,7 +57,9 @@ inline std::shared_ptr<std::ostream> create_ostream(const std::string &fileName,
 #ifdef _USE_GZSTREAM
     case ArchiveFormat::GZSTREAM:return std::make_shared<ogzstream>(fileName.c_str(), std::ios::out | std::ios::binary);
 #endif
+#ifdef _USE_ZSTDSTREAM
     case ArchiveFormat::ZSTDSTREAM:return std::make_shared<zstd::ofstream>(fileName, std::ios::out | std::ios::binary);
+#endif
 #ifdef _USE_COMPRESSED_STREAMS
       case ArchiveFormat::BROTLI: return std::make_shared<cs::BrotliOStream>(ofs);
       case ArchiveFormat::LZ4: return std::make_shared<cs::Lz4OStream>(ofs);
@@ -187,7 +189,7 @@ bool SerializeSave(const _Tp &obj, const std::string &fileName, int format, uint
   }
 
   // serialize out the current state
-  ARCHIVE::ArchiveSave serializer(stream, version);
+  MVArchive::ArchiveSave serializer(stream, version);
   try { serializer & obj; }
   catch (const std::bad_alloc &e) {
     return false;
@@ -215,7 +217,7 @@ bool SerializeLoad(_Tp &obj, const std::string &fileName, int *pFormat, uint32_t
   stream->read((char *) &reserved, sizeof(uint32_t));
 
   // serialize in the current state
-  ARCHIVE::ArchiveLoad serializer(stream, version);
+  MVArchive::ArchiveLoad serializer(stream, version);
 
   try { serializer & obj; }
   catch (const std::bad_alloc &e) {
@@ -375,7 +377,7 @@ bool Load(ArchiveLoad &a, std::vector<_Tp> &v) {
   return true;
 }
 
-}// namespace ARCHIVE
+}// namespace MVArchive
 }// namespace _INTERFACE_NAMESPACE
 
 #endif //OPENFLIPPER_ARINTERFACE_IMPL_HPP

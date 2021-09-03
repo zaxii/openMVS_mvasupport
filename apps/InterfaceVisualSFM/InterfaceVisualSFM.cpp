@@ -31,7 +31,7 @@
 
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
-#include "../../libs/ARCHIVE/ARWriter.h"
+#include "../../libs/MVArchive/ARWriter.h"
 #define LOG_OUT() GET_LOG()
 #define LOG_ERR() GET_LOG()
 #include "Util.h"

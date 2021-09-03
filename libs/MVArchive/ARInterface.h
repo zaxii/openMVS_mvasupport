@@ -199,7 +199,7 @@ class Matx {
 namespace _INTERFACE_NAMESPACE {
 
 // custom serialization
-namespace ARCHIVE {
+namespace MVArchive {
 
 // Basic serialization types
 struct DLL_API ArchiveSave {
@@ -228,7 +228,7 @@ template<typename _Tp>
 bool SerializeLoad(_Tp &obj, const std::string &fileName,
                    int *pFormat = nullptr, uint32_t *pVersion = nullptr);
 
-}  // namespace ARCHIVE
+}  // namespace MVArchive
 /*----------------------------------------------------------------*/
 
 

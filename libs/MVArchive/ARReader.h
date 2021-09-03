@@ -30,7 +30,7 @@ namespace ARCH {
 bool LoadInterface(MVS::Scene &scene, const std::string fileName) {
   MVSA::Interface obj;
   // serialize in
-  if (!MVSA::ARCHIVE::SerializeLoad(obj, fileName)) return false;
+  if (!MVSA::MVArchive::SerializeLoad(obj, fileName)) return false;
 
   scene.Release();
   ////////////////////

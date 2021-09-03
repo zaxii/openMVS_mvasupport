@@ -31,8 +31,8 @@
 
 #include "../../libs/MVS/Common.h"
 #include "../../libs/MVS/Scene.h"
-#include "../../libs/ARCHIVE/ARReader.h"
-#include "../../libs/ARCHIVE/ARWriter.h"
+#include "../../libs/MVArchive/ARReader.h"
+#include "../../libs/MVArchive/ARWriter.h"
 #include <boost/program_options.hpp>
 
 using namespace MVS;
