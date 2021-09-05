@@ -6,6 +6,7 @@ if(WITH_COMPRESS_STREAMS)
 else()
     include(import_zstd)
     include(import_zlib)
+    include_directories(${ZSTD_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 endif()
 
 if(COMPRESSED_STREAMS_FOUND)
