@@ -70,6 +70,7 @@ public:
 	static SEACAVE::EventQueue events; // internal events queue (processed by the working threads)
 	static SEACAVE::Thread thread; // worker thread
 
+    std::vector<std::pair<int, int> > pickrays; // Source IDX (Camera ID), Terminal IDX (Point ID)
 public:
 	Scene();
 	~Scene();

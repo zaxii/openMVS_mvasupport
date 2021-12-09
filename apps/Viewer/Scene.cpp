@@ -577,6 +577,14 @@ void Scene::Draw()
 		glEnable(GL_DEPTH_TEST);
 		glPointSize(window.pointSize);
 	}
+    if (!pickrays.empty()) {  // render picked rays
+        glBegin(GL_LINES);
+        for (auto p : pickrays) {
+            glVertex3dv(scene.images[p.first].camera.C.ptr());
+            glVertex3fv(scene.pointcloud.points[p.second].ptr());
+        }
+        glEnd();
+    }
 	glfwSwapBuffers(window.GetWindow());
 }
 
@@ -649,6 +657,7 @@ void Scene::CastRay(const Ray3& ray, int action)
 			window.selectionPoints[0] = window.selectionPoints[3] = scene.pointcloud.points[intRay.pick.idx];
 			window.selectionType = Window::SEL_POINT;
 			window.selectionTime = now;
+            pickrays.clear();
 			DEBUG("Point selected:\n\tindex: %u (%g %g %g)%s",
 				intRay.pick.idx,
 				window.selectionPoints[0].x, window.selectionPoints[0].y, window.selectionPoints[0].z,
@@ -666,6 +675,10 @@ void Scene::CastRay(const Ray3& ray, int action)
 					return strViews;
 				}().c_str()
 			);
+            const MVS::PointCloud::ViewArr& views = scene.pointcloud.pointViews[intRay.pick.idx];
+            for (MVS::PointCloud::View idxImage : views) {
+                pickrays.emplace_back(idxImage, intRay.pick.idx);
+            }
 		} else {
 			window.selectionType = Window::SEL_POINT;
 		}
