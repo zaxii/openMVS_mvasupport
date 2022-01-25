@@ -24,6 +24,7 @@ set(OpenMVS_PATCH_VERSION 1)
 set(OpenMVS_VERSION ${OpenMVS_MAJOR_VERSION}.${OpenMVS_MINOR_VERSION}.${OpenMVS_PATCH_VERSION})
 
 # Find dependencies:
+include(build/deps.cmake) # Install External libs with conan
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/build/Modules)
 
 # fix CMake IntDir variable

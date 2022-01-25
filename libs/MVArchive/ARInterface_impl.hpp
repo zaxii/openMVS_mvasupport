@@ -191,7 +191,7 @@ bool SerializeSave(const _Tp &obj, const std::string &fileName, int format, uint
   // serialize out the current state
   MVArchive::ArchiveSave serializer(stream, version);
   try { serializer & obj; }
-  catch (const std::bad_alloc &e) {
+  catch (const std::bad_alloc) {
     return false;
   }
   return true;
@@ -220,7 +220,7 @@ bool SerializeLoad(_Tp &obj, const std::string &fileName, int *pFormat, uint32_t
   MVArchive::ArchiveLoad serializer(stream, version);
 
   try { serializer & obj; }
-  catch (const std::bad_alloc &e) {
+  catch (const std::bad_alloc) {
     return false;
   }
   obj.format = format;

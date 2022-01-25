@@ -15,7 +15,7 @@
 
 #ifndef ARCHIVE_DLLMACRO_H
 #define ARCHIVE_DLLMACRO_H
-#if defined(_WIN32) && !defined(NNSM_STATIC)
+#if defined(_WIN32) && !defined(ARCHIVE_STATIC)
 #ifdef ARCHIVE_DLL_EXPORTS
 #define DLL_API __declspec(dllexport)
 #else

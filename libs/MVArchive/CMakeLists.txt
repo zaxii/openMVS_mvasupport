@@ -1,42 +1,46 @@
 ########## Import Compression Streams dependencies
-option(WITH_COMPRESS_STREAMS "Use Compress Streams to support brotli, zstd, lz4, lzma. [Only works for small size]" OFF)
-
-if(WITH_COMPRESS_STREAMS)
-    include(import_compressed_streams)
-else()
-    include(import_zstd)
-    include(import_zlib)
-    include_directories(${ZSTD_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
-endif()
-
-if(COMPRESSED_STREAMS_FOUND)
-    message(STATUS "Import compressed_streams. [${COMPRESSED_STREAMS_LIBRARIES}]")
-    add_definitions(-D_USE_COMPRESSED_STREAMS)
-    add_definitions(-D_USE_ZSTDSTREAM)
-    add_definitions(-D_USE_GZSTREAM)
-endif()
-
-if(ZSTD_FOUND)
-    message(STATUS "Import ZSTD lib. [${ZSTD_LIBRARIES}]")
-    add_definitions(-D_USE_ZSTDSTREAM)
-endif()
-
+FIND_PACKAGE(zlib)
 if(ZLIB_FOUND)
     message(STATUS "Import ZLIB lib. [${ZLIB_LIBRARIES}]")
     add_definitions(-D_USE_GZSTREAM)
 endif()
 
-SET(SRCS ARInterface.cpp
-        zstdstream/zstdstream.cpp)
-set(HEADERS ARInterface.h
-        ARInterface_impl.hpp)
+FIND_PACKAGE(zstd)
+if(ZSTD_FOUND)
+    if(zstd_LIBRARIES)
+        set(ZSTD_LIBRARIES ${zstd_LIBRARIES})
+    endif()
+    message(STATUS "Import ZSTD lib. [${ZSTD_LIBRARIES}]")
+    add_definitions(-D_USE_ZSTDSTREAM)
+endif()
 
-add_library(MVArchive STATIC ${SRCS})
+SET(InternalSRC ARInterface.cpp
+                zstdstream/zstdstream.cpp)
+set(InternalHDR ARInterface.h
+                ARInterface_impl.hpp)
+
+set(LIBRARY_FILES_C Common.cpp
+                    ${InternalSRC}
+                    ARReader.cpp
+                    ARWriter.cpp
+                    )
+set(LIBRARY_FILES_H ${InternalHDR}
+                    Common.h
+                    ARReader.h
+                    ARWriter.h)
+
+cxx_library_with_type_no_pch(MVArchive "Libs" "STATIC" "${cxx_default}"
+	${LIBRARY_FILES_C} ${LIBRARY_FILES_H}
+)
+
+# Manually set Common.h as the precompiled header
+set_target_pch(MVArchive Common.h)
+
 target_link_libraries(MVArchive PUBLIC ${ZLIB_LIBRARIES} ${ZSTD_LIBRARIES} ${OpenCV_LIBRARIES} ${COMPRESSED_STREAMS_LIBRARIES})
 target_compile_definitions(MVArchive PUBLIC _USE_OPENCV _USE_GZSTREAM _USE_ZSTDSTREAM OFFICIAL_OPENMVS PRIVATE ARCHIVE_DLL_EXPORTS )
 
 set_target_properties(MVArchive PROPERTIES
-        PUBLIC_HEADER "${HEADERS}")
+        PUBLIC_HEADER "${LIBRARY_FILES_H}")
 
 install(TARGETS MVArchive
         EXPORT OpenMVSTargets

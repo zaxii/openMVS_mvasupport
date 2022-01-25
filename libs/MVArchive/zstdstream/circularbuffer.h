@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cstdlib>
 
-#ifdef WITHOUT_POSIX
+#if defined(WITHOUT_POSIX) || defined(_MSC_VER)
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #endif // WITHOUT_POSIX
