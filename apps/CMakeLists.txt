@@ -1,6 +1,9 @@
+include_directories(Common)
 # Add applications
 ADD_SUBDIRECTORY(InterfaceCOLMAP)
 ADD_SUBDIRECTORY(InterfaceVisualSFM)
+ADD_SUBDIRECTORY(InterfaceMSP)
+ADD_SUBDIRECTORY(ImageDeblur)
 ADD_SUBDIRECTORY(DensifyPointCloud)
 ADD_SUBDIRECTORY(ReconstructMesh)
 ADD_SUBDIRECTORY(RefineMesh)

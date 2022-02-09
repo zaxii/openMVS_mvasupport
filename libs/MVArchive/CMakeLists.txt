@@ -29,12 +29,13 @@ set(LIBRARY_FILES_H ${InternalHDR}
                     ARReader.h
                     ARWriter.h)
 
-cxx_library_with_type_no_pch(MVArchive "Libs" "STATIC" "${cxx_default}"
-	${LIBRARY_FILES_C} ${LIBRARY_FILES_H}
-)
+#cxx_library_with_type_no_pch(MVArchive "Libs" "STATIC" "${cxx_default}"
+#	${LIBRARY_FILES_C} ${LIBRARY_FILES_H}
+#)
 
+add_library(MVArchive ${LIBRARY_FILES_C})
 # Manually set Common.h as the precompiled header
-set_target_pch(MVArchive Common.h)
+#set_target_pch(MVArchive Common.h)
 
 target_link_libraries(MVArchive PUBLIC ${ZLIB_LIBRARIES} ${ZSTD_LIBRARIES} ${OpenCV_LIBRARIES} ${COMPRESSED_STREAMS_LIBRARIES})
 target_compile_definitions(MVArchive PUBLIC _USE_OPENCV _USE_GZSTREAM _USE_ZSTDSTREAM OFFICIAL_OPENMVS PRIVATE ARCHIVE_DLL_EXPORTS )

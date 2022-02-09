@@ -18,19 +18,19 @@ if(UNIX)
 endif()
 conan_cmake_configure(
         REQUIRES
-        eigen/3.3.9
-        boost/1.75.0
-        libcurl/7.77.0
-        zstd/1.5.0
-        zlib/1.2.11
+#        eigen/3.3.9
+#        boost/1.75.0
+#        libcurl/7.77.0
+#        zstd/1.5.0
+#        zlib/1.2.11
         opencv/4.5.3
-        gmp/6.2.1
-        mpfr/4.1.0
+
         cgal/5.3
-        ceres-solver/2.0.0
-#        openmesh/8.1
+#        ceres-solver/2.0.0
+
         fmt/8.0.1
         spdlog/1.9.2
+        cxxopts/3.0.0
         GENERATORS cmake_find_package
         #	IMPORTS "bin, *.dll.* -> ./bin"
         #	IMPORTS "lib, *.dylib.* -> ./bin"
