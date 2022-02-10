@@ -28,9 +28,7 @@ include(build/deps.cmake) # Install External libs with conan
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/build/Modules)
 
 # fix CMake IntDir variable
-if(MSVC AND "${MSVC_VERSION}" STRGREATER "1500")
-	SET(CMAKE_CFG_INTDIR "$(Platform)/$(Configuration)")
-endif()
+
 SET(COTIRE_INTDIR "cotire")
 
 # Define helper functions and macros.
