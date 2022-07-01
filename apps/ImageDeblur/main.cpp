@@ -5,6 +5,8 @@
 #include <spdlog/spdlog.h>
 #include "ghc/filesystem.hpp"
 
+#include <omp.h>
+
 namespace fs=ghc::filesystem;
 
 using namespace cv;
@@ -135,10 +137,18 @@ int main(int argc, char *argv[])
     spdlog::info("Radius: {0}    SNR: {1}",radius, snr);
 
     size_t num_imgs = input_image_paths.size();
-    for(size_t i=0;i<num_imgs;++i)
+
+    int finished = 0;
+#pragma omp parallel for
+    for(int i=0;i<num_imgs;++i)
     {
-        if(batch_mode) spdlog::info("Processing {0}/{1}...", i+1, num_imgs);
         process(input_image_paths[i],output_image_paths[i], radius, snr);
+        if (batch_mode)
+        {
+#pragma omp critical
+            finished += 1;
+            spdlog::info("Processed {0}/{1}...", finished, num_imgs);
+        }
     }
     spdlog::info("Done.");
     return 0;
