@@ -1,7 +1,7 @@
 include(ExternalProject)
 
 ExternalProject_Add(zlib_ext
-    URL                 http://zlib.net/zlib-1.2.11.tar.gz
+    URL                 http://zlib.net/zlib-1.2.13.tar.gz
     PREFIX              zlib
     CMAKE_ARGS          -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                         -DCMAKE_POSITION_INDEPENDENT_CODE=${CMAKE_POSITION_INDEPENDENT_CODE}
